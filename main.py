@@ -4,6 +4,9 @@ import random;
 import sys
 import math
 
+# Line 7 to 25 just processes user input; 
+# If "read" isn't given, then the program initializes the weights used to pick chords. 
+# If "read" is    given, then the program simply reads from the weights.db file.
 arglen = len(sys.argv)
 chordsToWrite = 0;
 
@@ -21,10 +24,16 @@ if sys.argv[1] == "read":
 
 if arglen == 3:
     chordsToWrite = int(sys.argv[2]);
+    
+ 
 
+# masterArray stores the probability of each chord.
 masterArray = np.ones(shape=(6,6))
+
+# frequencyArray stores the frequency of each chord.
 frequencyArray = np.ones(shape=(6,1))
 
+# Basic global variables
 file = open("weights.db","r")
 dataset = open("datasets.db","r")
 frequencyFile = open("frequencies.db","r")
@@ -32,6 +41,7 @@ chords = "CDEFGA"
 outputChords = [];
 outputChordFile = open("written_chords.txt","w+");
 
+#populating masterArray with weights from the weights file
 def readWeights():
     global masterArray
     i=0
@@ -41,6 +51,7 @@ def readWeights():
             masterArray[i][j] = float(currentSplit[0])
         i = i + 1
 
+# Writing to the weights file with new information
 def writeWeights():
     file = open("weights.db","w")
     for i in range(0, 6):
@@ -50,6 +61,7 @@ def writeWeights():
 
     file.close()
 
+# populating the frequency array with the frequency file's values.
 def readFrequencies():
     global frequencyArray
     i = 0
@@ -57,13 +69,15 @@ def readFrequencies():
         frequencyArray[i][0] = float(line)
     i += 1
 
+# Writing to the frequency file with new information
 def writeFrequencies():
     frequencyFile = open("frequencies.db","w")
     for i in range(0, 6):
         frequencyFile.write(str(frequencyArray[i][0]) + "\n")
     frequencyFile.close()
 
-
+# Initialize weights if there were no weights.db set up.
+# This writes to a new file, weights.db
 def initializeWeights():
     global masterArray
     masterArray = np.random.rand(6,6)
@@ -76,18 +90,21 @@ def initializeWeights():
 
     file.close()
 
-
+# Flattening out the rows of any given matrix to it.
 def normalizeRows (arr):
     rowSums = np.sum(a = arr,axis = 1)
     for i in range(0,6):
         arr[i] *= float(1) / float(rowSums[i]);
         #print(float(1) / float(rowSums[i]))
 
+# Flattening out the columns of any given matrix to it
 def normalizeCols (arr):
     colSums = np.sum(a = arr, axis = 0)
     for i in range(0, 6):
         arr[i] *= float(1) / float(colSums)
 
+# Updating masterArray's weights given a chord-progression input.
+# the input is a string like "CFGA", where each letter is a chord.
 def updateWeight(str):
     for i in range(0,4):
         currentChord = str[i]
@@ -97,10 +114,13 @@ def updateWeight(str):
         masterArray[currentChordRow][nextChordCol] += 0.05
     normalizeRows(masterArray)
 
+# Collective updating all weights based on raw chord prog data
 def updateAllWeights():
     for line in dataset:
         updateWeight(line)
 
+# Updating the frequency array with input string of chord progressions
+# str is a string like "AFCG", where each letter is a chord.
 def updateFrequency(str):
     occurrences = []
     for i in range(0, 6):
@@ -112,7 +132,7 @@ def updateFrequency(str):
         if occurrences[currentChordRow] > 1:
             frequencyArray[currentChordRow] += 0.05;
 
-
+# collectively updating frequencies based on raw chord prog data
 def updateAllFrequencies():
     print("Updating all frequencies: ")
     dataset = open("datasets.db","r")
@@ -120,6 +140,7 @@ def updateAllFrequencies():
         updateFrequency(line)
     normalizeCols(frequencyArray)
 
+# Function that decides next chord to choose base on current chord
 def decideNextChord(i, chords):
     distribution = np.empty(7, dtype=float)
 
@@ -134,8 +155,6 @@ def decideNextChord(i, chords):
         gap = masterArray[i][j];
         for c in chords:
             if c == j:
-                #gap *= 0.5 + frequencyArray[j];
-                #gap *= (5 - occurrencesInChord[j])/5
                 occurrencesInChord[j] += 1
         lastCut += (gap + frequencyArray[j]) * (5 - occurrencesInChord[j]) / 5;
         distribution[j + 1] = lastCut;
@@ -153,6 +172,7 @@ def decideNextChord(i, chords):
 
     return -1
 
+# Picking the new first chord
 def pickNewChordIndex():
     global frequencyArray
     distribution = []
@@ -177,12 +197,9 @@ def pickNewChordIndex():
             return j
     return 5
 
-def considerFrequencies():
-    global masterArray
-    global frequencyArray
-    for i in range(0, 6):
-            print()
 
+
+# Actually calling all the functions now
 
 if read:
     readWeights()
@@ -195,7 +212,7 @@ updateAllWeights()
 updateAllFrequencies()
 
 
-
+# Basic code handling the creation of a new chord progression
 if arglen > 2:
     chordIndex = pickNewChordIndex()
     outputChords.append(chordIndex);
